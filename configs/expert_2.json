@@ -1,0 +1,131 @@
+{
+  "description": "Expert iteration cycle 2: the search champion over the expert-1b policy (search:4t8:model:champions/robber-expert-1b.pt) plays the expert-1 tables on fresh boards; the policy tower is retrained from expert-1b with the expert-1b recipe (searched decisions only, weights 0/1/3, tau 0.02, lr 3e-4, 8 epochs).",
+  "name": "expert-2",
+  "dataset": {
+    "teachers": [
+      "search:4t8:model:champions/robber-expert-1b.pt"
+    ],
+    "splits": {
+      "train": {
+        "groups": [
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt"
+            ],
+            "boards": 100,
+            "seed": 900000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 70,
+            "seed": 901000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 60,
+            "seed": 902000
+          }
+        ]
+      },
+      "dev": {
+        "groups": [
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt"
+            ],
+            "boards": 12,
+            "seed": 910000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 911000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 912000
+          }
+        ]
+      },
+      "holdout": {
+        "groups": [
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt"
+            ],
+            "boards": 12,
+            "seed": 920000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 921000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "search:4t8:model:champions/robber-expert-1b.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 922000
+          }
+        ]
+      }
+    }
+  },
+  "training": {
+    "seed": 0,
+    "init": "champions/robber-expert-1b.pt",
+    "epochs": 8,
+    "batch_size": 512,
+    "lr": 0.0003,
+    "weight_decay": 0.0,
+    "value_weight": 0.0,
+    "aux_weight": 0.0,
+    "policy_target": "search",
+    "search_tau": 0.02,
+    "net": {},
+    "search_weights": [
+      0.0,
+      1.0,
+      3.0
+    ]
+  }
+}
