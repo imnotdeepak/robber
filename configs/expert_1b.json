@@ -1,0 +1,131 @@
+{
+  "description": "Expert iteration cycle 1b: retrains on the expert-1 data (pass --data data/expert-1). Only searched decisions train the policy (search_weights 0/1/3 for unsearched/kept/switched), with sharper search targets (tau 0.02), lr 3e-4 and 8 epochs; the best dev epoch is kept.",
+  "name": "expert-1b",
+  "dataset": {
+    "teachers": [
+      "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt"
+    ],
+    "splits": {
+      "train": {
+        "groups": [
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt"
+            ],
+            "boards": 100,
+            "seed": 870000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 70,
+            "seed": 871000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 60,
+            "seed": 872000
+          }
+        ]
+      },
+      "dev": {
+        "groups": [
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt"
+            ],
+            "boards": 12,
+            "seed": 880000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 881000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 882000
+          }
+        ]
+      },
+      "holdout": {
+        "groups": [
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt"
+            ],
+            "boards": 12,
+            "seed": 890000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 891000
+          },
+          {
+            "lineup": [
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "search:4t8:model:champions/robber-ppo3-r60-value-ppo3.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 892000
+          }
+        ]
+      }
+    }
+  },
+  "training": {
+    "seed": 0,
+    "init": "champions/robber-ppo3-r60-value-ppo3.pt",
+    "epochs": 8,
+    "batch_size": 512,
+    "lr": 0.0003,
+    "weight_decay": 0.0,
+    "value_weight": 0.0,
+    "aux_weight": 0.0,
+    "policy_target": "search",
+    "search_tau": 0.02,
+    "net": {},
+    "search_weights": [
+      0.0,
+      1.0,
+      3.0
+    ]
+  }
+}
