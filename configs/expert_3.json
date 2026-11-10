@@ -1,0 +1,131 @@
+{
+  "description": "Expert iteration cycle 3: a stronger teacher, search 8 worlds x 16 turns over the expert-1b policy (8t16 beat 4t8 54.4%; 8t24 did not beat 8t16), on fresh boards; the policy tower is retrained from expert-1b with the expert-1b recipe (searched decisions only, weights 0/1/3, tau 0.02, lr 3e-4, 8 epochs).",
+  "name": "expert-3",
+  "dataset": {
+    "teachers": [
+      "search:8t16:model:champions/robber-expert-1b.pt"
+    ],
+    "splits": {
+      "train": {
+        "groups": [
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt"
+            ],
+            "boards": 100,
+            "seed": 930000
+          },
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 70,
+            "seed": 931000
+          },
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 60,
+            "seed": 932000
+          }
+        ]
+      },
+      "dev": {
+        "groups": [
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt"
+            ],
+            "boards": 12,
+            "seed": 940000
+          },
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 941000
+          },
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 942000
+          }
+        ]
+      },
+      "holdout": {
+        "groups": [
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt"
+            ],
+            "boards": 12,
+            "seed": 950000
+          },
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "catanatron:F",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 951000
+          },
+          {
+            "lineup": [
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "search:8t16:model:champions/robber-expert-1b.pt",
+              "catanatron:AB:2",
+              "catanatron:F"
+            ],
+            "boards": 8,
+            "seed": 952000
+          }
+        ]
+      }
+    }
+  },
+  "training": {
+    "seed": 0,
+    "init": "champions/robber-expert-1b.pt",
+    "epochs": 8,
+    "batch_size": 512,
+    "lr": 0.0003,
+    "weight_decay": 0.0,
+    "value_weight": 0.0,
+    "aux_weight": 0.0,
+    "policy_target": "search",
+    "search_tau": 0.02,
+    "net": {},
+    "search_weights": [
+      0.0,
+      1.0,
+      3.0
+    ]
+  }
+}
