@@ -143,3 +143,31 @@ def test_search_agents_report_priors_and_candidate_scores() -> None:
     forced = replace(obs, legal_actions=obs.legal_actions[:1])
     agent.decide(forced)
     assert agent.last_priors == () and agent.last_scores == {}
+
+
+def test_rollouts_can_model_opponents_as_value_function_bots() -> None:
+    referee = next(searched_positions(7))
+    seat = referee.adapter.current_seat
+    world = referee.adapter.branch(1)
+    before = dict(world.referee_game.state.player_state)
+    action = referee.observe(seat).legal_actions[0]
+    bots = replace(SMALL, opponents="F")
+    first = rollout(world, action, seat, POLICY, bots, seed=42)
+    assert rollout(world, action, seat, POLICY, bots, seed=42) == first
+    assert dict(world.referee_game.state.player_state) == before
+    value, played = first
+    assert 0.0 <= value <= 1.0 and played > 0
+
+
+def test_search_budget_specs() -> None:
+    from catan_ai.arena.contestants import search_config
+
+    assert search_config("8") == SearchConfig(worlds=8)
+    assert search_config("4t8") == SearchConfig(worlds=4, turns=8)
+    assert search_config("4t8-F") == SearchConfig(worlds=4, turns=8, opponents="F")
+    for bad in ("0", "4t", "x", "4t8-G", "4t8-"):
+        try:
+            search_config(bad)
+        except ValueError:
+            continue
+        raise AssertionError(bad)

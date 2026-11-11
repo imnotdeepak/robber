@@ -19,7 +19,10 @@ and scores each by short rollouts in worlds sampled from its own beliefs
 
 A rollout runs `turns` turns past the root, then stops at the viewer's next
 decision and reads its value head (P(viewer wins)); a rollout that ends the
-game scores 1 or 0. Rollout players are the policy, greedy, in every seat.
+game scores 1 or 0. Rollout players are the policy, greedy, in every seat,
+unless `SearchConfig.opponents` is "F": then every seat but the viewer's plays
+Catanatron's ValueFunction bot in rollouts (an opponent-model experiment; the
+bot reads its sampled world, never the real game).
 """
 
 import math
@@ -27,10 +30,11 @@ import random
 import time
 from collections import Counter
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
 
 from catan_ai.beliefs.worlds import WorldSampler
 from catan_ai.engine import CanonicalAction, EngineAdapter, IllegalActionError
+from catan_ai.engine.actions import to_canonical
 from catan_ai.models import PolicyAgent, PolicyValue
 from catan_ai.observations import PlayerObservation, Referee
 
@@ -50,6 +54,22 @@ class SearchConfig:
     close: float = 0.5  # search when the top two priors are closer than this
     near_win: int = 8  # or when any seat shows this many points
     switch: float = 0.02  # leave the policy's choice only for a larger mean gain
+    opponents: str = "self"  # rollout opponents: "self" (the policy) or "F" (ValueFunction)
+
+
+def _engine_bot_decide(
+    branch: EngineAdapter, players: dict[int, Any], seat: int
+) -> CanonicalAction:
+    """Catanatron's ValueFunction bot's choice for `seat` in a rollout world."""
+    from catanatron.players.value import ValueFunctionPlayer
+
+    game = branch.referee_game
+    actions = game.playable_actions
+    if len(actions) == 1:
+        return to_canonical(actions[0], game.state.colors)
+    if seat not in players:
+        players[seat] = ValueFunctionPlayer(game.state.colors[seat])
+    return to_canonical(players[seat].decide(game, actions), game.state.colors)
 
 
 def candidates(
@@ -96,13 +116,17 @@ def rollout(
     referee = Referee(branch)
     referee.execute(action)
     agents = [PolicyAgent(policy, seed=f"{seed}:{s}") for s in range(4)]
+    bots: dict[int, Any] | None = {} if config.opponents == "F" else None
     stop = branch.num_turns + config.turns
     played = 0
     while not branch.is_over and played < config.max_decisions:
         seat = branch.current_seat
         if seat == viewer and branch.num_turns >= stop:
             break
-        referee.execute(agents[seat].decide(referee.observe(seat)))
+        if bots is not None and seat != viewer:
+            referee.execute(_engine_bot_decide(branch, bots, seat))
+        else:
+            referee.execute(agents[seat].decide(referee.observe(seat)))
         played += 1
     winner = branch.winner_seat
     if winner is not None:

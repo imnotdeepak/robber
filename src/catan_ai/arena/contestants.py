@@ -19,7 +19,9 @@
   `rules`, `model` or `learned`, every non-trade decision by `<spec>`.
 - `search:<budget>:model:<checkpoint>`: greedy play from the checkpoint with
   belief-world root search at key decisions (`catan_ai.search`). The budget is
-  `<worlds>` or `<worlds>t<turns>`, e.g. `search:8:model:...`, `search:16t2:model:...`.
+  `<worlds>` or `<worlds>t<turns>`, e.g. `search:8:model:...`, `search:16t2:model:...`;
+  a `-F` suffix (`search:4t8-F:model:...`) makes every other seat play Catanatron's
+  ValueFunction bot inside rollouts.
 - `catanatron:<spec>`: a built-in bot by registry spec, e.g. `catanatron:F`,
   `catanatron:AB:2`, `catanatron:W`. These receive the full engine `Game` and
   are therefore privileged (rules matrix H-01); results label them so.
@@ -27,7 +29,7 @@
 
 import hashlib
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -79,15 +81,21 @@ def load_policy(checkpoint: str) -> PolicyValue:
 
 
 def search_config(budget: str) -> Any:
-    """`<worlds>` or `<worlds>t<turns>` as a SearchConfig."""
+    """`<worlds>`, `<worlds>t<turns>`, optionally `-F` (rollout opponents play
+    ValueFunction), as a SearchConfig."""
     from catan_ai.search import SearchConfig
 
-    worlds, _, turns = budget.partition("t")
-    if not worlds.isdigit() or (turns and not turns.isdigit()) or int(worlds) < 1:
-        raise ValueError(f"Bad search budget {budget!r}; use e.g. 8 or 8t2")
-    if turns:
-        return SearchConfig(worlds=int(worlds), turns=int(turns))
-    return SearchConfig(worlds=int(worlds))
+    size, dash, opponents = budget.partition("-")
+    worlds, t, turns = size.partition("t")
+    if (
+        not worlds.isdigit()
+        or (t and not turns.isdigit())
+        or int(worlds) < 1
+        or (dash and opponents != "F")
+    ):
+        raise ValueError(f"Bad search budget {budget!r}; use e.g. 8, 8t2 or 4t8-F")
+    config = SearchConfig(worlds=int(worlds), opponents="F" if dash else "self")
+    return replace(config, turns=int(turns)) if turns else config
 
 
 @dataclass(frozen=True)
