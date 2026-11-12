@@ -25,7 +25,7 @@
   @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
   .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
-  button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 7px 12px; cursor: pointer; }
   button:hover { border-color: var(--muted); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button:disabled { opacity: .5; cursor: default; }
@@ -33,12 +33,12 @@
   svg { width: 100%; height: auto; display: block; }
   .board { position: sticky; top: 8px; }
   .opt { display: block; width: 100%; text-align: left; margin: 3px 0; }
-  .opt.best { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+  .opt.best { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--panel)); }
   .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
   .muted { color: var(--muted); }
   .error { color: var(--accent); min-height: 1.2em; }
   table { border-collapse: collapse; width: 100%; }
-  td, th { padding: 3px 4px; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  td, th { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
   .chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid #0006; margin-right: 6px; vertical-align: -1px; }
   .log { max-height: 220px; overflow: auto; font-size: 12.5px; }
   .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 3px; }
