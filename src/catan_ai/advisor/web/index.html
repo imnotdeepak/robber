@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robber Advisor</title>
+<style>
+  :root {
+    --bg: #f4f1ea; --panel: #fffdf8; --ink: #23201b; --muted: #6f685c; --line: #ddd5c6;
+    --accent: #b5462f; --gold: #d99a1e; --ok: #2f7d4f;
+    --wood: #3f7f3a; --brick: #b85c38; --wool: #9fcf6a; --grain: #e6c34a; --ore: #8d8f99; --desert: #dccb9c;
+    --sea: #6aa7c9;
+    --p0: #d0342c; --p1: #2c62c9; --p2: #f2efe6; --p3: #ea8a1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1d1b18; --panel: #282521; --ink: #efe9dd; --muted: #a79f90; --line: #3d3832; --sea: #2f5a73; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; }
+  header .status { color: var(--muted); }
+  header .spacer { flex: 1; }
+  main { display: grid; grid-template-columns: minmax(320px, 1fr) 420px; gap: 12px; padding: 12px 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  input, select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); }
+  svg { width: 100%; height: auto; display: block; }
+  .board { position: sticky; top: 8px; }
+  .opt { display: block; width: 100%; text-align: left; margin: 3px 0; }
+  .opt.best { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .error { color: var(--accent); min-height: 1.2em; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { padding: 3px 4px; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1px solid #0006; margin-right: 6px; vertical-align: -1px; }
+  .log { max-height: 220px; overflow: auto; font-size: 12.5px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 3px; }
+  .bar > span { display: block; height: 100%; background: var(--ok); }
+  .advice-main { font-size: 16px; font-weight: 600; margin: 4px 0 8px; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink); max-width: 460px; }
+  .hint { font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Robber Advisor</h1>
+  <span class="status" id="status">No table yet</span>
+  <span class="spacer"></span>
+  <button id="undo">Undo</button>
+  <button id="newBtn">New table</button>
+</header>
+<main>
+  <section class="board panel"><svg id="board" viewBox="-6.2 -5.6 12.4 11.2" aria-label="Board"></svg>
+    <p class="hint" id="boardHint"></p></section>
+  <section>
+    <div class="panel" id="advicePanel">
+      <h2>Robber's advice</h2>
+      <div id="advice" class="muted">When it is your decision, ask Robber.</div>
+      <div class="row"><button class="primary" id="adviseBtn">Ask Robber</button><span class="muted" id="adviseNote"></span></div>
+    </div>
+    <div class="panel">
+      <h2 id="recordTitle">Record what happened</h2>
+      <div id="outcome"></div>
+      <div class="row"><input id="filter" placeholder="Filter moves..." style="flex:1"></div>
+      <div id="options"></div>
+      <div id="tradeBox"></div>
+      <div class="error" id="error"></div>
+    </div>
+    <div class="panel"><h2>Players</h2><table id="players"></table>
+      <p id="hand"></p><p class="muted" id="bank"></p></div>
+    <div class="panel"><h2>Log</h2><div class="log" id="log"></div></div>
+  </section>
+</main>
+
+<dialog id="newDialog">
+  <form method="dialog" id="newForm">
+    <h2 style="margin-top:0">New table</h2>
+    <p class="hint">Players in turn order: player 1 places the first settlement.</p>
+    <div id="nameRows"></div>
+    <div class="row">Your seat: <select id="viewer"><option value="0">1</option><option value="1">2</option><option value="2">3</option><option value="3">4</option></select></div>
+    <div class="row"><label><input type="checkbox" id="editBoard" checked> Enter the real board after starting</label></div>
+    <div class="row"><button value="cancel">Cancel</button><button class="primary" id="startBtn" value="ok">Start</button></div>
+  </form>
+</dialog>
+
+<script>
+const RES = ["lumber", "brick", "wool", "grain", "ore"];
+const ENGINE = { lumber: "WOOD", brick: "BRICK", wool: "SHEEP", grain: "WHEAT", ore: "ORE" };
+const FILL = { lumber: "var(--wood)", brick: "var(--brick)", wool: "var(--wool)", grain: "var(--grain)", ore: "var(--ore)" };
+const SEAT = ["var(--p0)", "var(--p1)", "var(--p2)", "var(--p3)"];
+const CARDS = ["KNIGHT", "YEAR_OF_PLENTY", "MONOPOLY", "ROAD_BUILDING", "VICTORY_POINT"];
+let S = null;            // last state from the server
+let editing = null;      // board being edited: {tiles, ports}
+let pick = null;         // tile being edited
+let busy = false;
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) k === "class" ? (e.className = v) : k.startsWith("on") ? (e[k] = v) : e.setAttribute(k, v);
+  for (const k of kids) e.append(k);
+  return e;
+};
+const svgEl = (tag, attrs = {}) => {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+};
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+async function run(path, body) {
+  if (busy) return;
+  busy = true; $("error").textContent = "";
+  try { S = await api(path, body); render(); }
+  catch (e) { $("error").textContent = e.message; }
+  finally { busy = false; }
+}
+
+// ----- Board
+
+function hexPoints(x, y) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) { const a = Math.PI / 180 * (60 * i - 90); pts.push(`${x + Math.cos(a) * 0.98},${y + Math.sin(a) * 0.98}`); }
+  return pts.join(" ");
+}
+
+function drawBoard() {
+  const svg = $("board"); svg.replaceChildren();
+  if (!S || !S.table) return;
+  const b = S.board, nodes = b.nodes;
+  const tiles = editing ? editing.tiles : b.tiles;
+  for (const p of (editing ? editing.ports : b.ports)) {
+    const ns = p.nodes.map((n) => nodes[n]).filter(Boolean);
+    for (const n of ns) svg.append(svgEl("line", { x1: p.x, y1: p.y, x2: n.x, y2: n.y, stroke: "var(--muted)", "stroke-width": 0.05, "stroke-dasharray": "0.1 0.08" }));
+    const g = svgEl("g", { cursor: editing ? "pointer" : "default" });
+    g.append(svgEl("circle", { cx: p.x, cy: p.y, r: 0.42, fill: p.resource ? FILL[p.resource] : "var(--panel)", stroke: "var(--ink)", "stroke-width": 0.03 }));
+    const t = svgEl("text", { x: p.x, y: p.y + 0.11, "text-anchor": "middle", "font-size": 0.3, fill: "#000" });
+    t.textContent = p.resource ? "2:1" : "3:1"; g.append(t);
+    if (editing) g.onclick = () => { const order = [null, ...RES]; p.resource = order[(order.indexOf(p.resource) + 1) % order.length]; drawBoard(); };
+    svg.append(g);
+  }
+  for (const t of tiles) {
+    const g = svgEl("g", { cursor: editing ? "pointer" : "default" });
+    g.append(svgEl("polygon", { points: hexPoints(t.x, t.y), fill: t.resource ? FILL[t.resource] : "var(--desert)", stroke: pick === t ? "var(--accent)" : "#0005", "stroke-width": pick === t ? 0.09 : 0.04 }));
+    if (t.number) {
+      g.append(svgEl("circle", { cx: t.x, cy: t.y, r: 0.36, fill: "#fbf6e9", stroke: "#0004", "stroke-width": 0.02 }));
+      const n = svgEl("text", { x: t.x, y: t.y + 0.13, "text-anchor": "middle", "font-size": 0.38, "font-weight": 700, fill: [6, 8].includes(t.number) ? "#b5462f" : "#222" });
+      n.textContent = t.number; g.append(n);
+    }
+    if (!editing && t.robber) g.append(svgEl("circle", { cx: t.x + 0.45, cy: t.y - 0.35, r: 0.2, fill: "#222", stroke: "#fff", "stroke-width": 0.04 }));
+    if (editing) g.onclick = () => { pick = t; renderEditor(); drawBoard(); };
+    else g.onclick = () => clickPlace({ tile: t.coord });
+    svg.append(g);
+  }
+  if (editing) return;
+  const best = S.advice ? new Set(S.advice.candidates.slice(0, 1).map((c) => c.key)) : new Set();
+  for (const r of b.roads) line(svg, nodes[r.a], nodes[r.b], SEAT[r.seat], 0.16);
+  for (const o of S.options) if (o.edge) {
+    const ln = line(svg, nodes[o.edge[0]], nodes[o.edge[1]], best.has(o.key) ? "var(--gold)" : "#0003", best.has(o.key) ? 0.16 : 0.08);
+    ln.style.cursor = "pointer"; ln.onclick = () => clickPlace({ edge: o.edge });
+  }
+  for (const bd of b.buildings) {
+    const n = nodes[bd.node];
+    const shape = bd.kind === "CITY" ? svgEl("rect", { x: n.x - 0.24, y: n.y - 0.24, width: 0.48, height: 0.48, rx: 0.06 }) : svgEl("circle", { cx: n.x, cy: n.y, r: 0.2 });
+    shape.setAttribute("fill", SEAT[bd.seat]); shape.setAttribute("stroke", "#000"); shape.setAttribute("stroke-width", 0.04);
+    svg.append(shape);
+  }
+  for (const o of S.options) if (o.node !== undefined) {
+    const n = nodes[o.node], hot = best.has(o.key);
+    const c = svgEl("circle", { cx: n.x, cy: n.y, r: hot ? 0.2 : 0.12, fill: hot ? "var(--gold)" : "#fff8", stroke: "#000", "stroke-width": 0.03, cursor: "pointer" });
+    c.onclick = () => clickPlace({ node: o.node }); svg.append(c);
+  }
+  const robberTarget = S.options.find((o) => o.tile);
+  $("boardHint").textContent = robberTarget ? "Click a tile to move the robber there." : S.options.some((o) => o.node !== undefined || o.edge) ? "Click a highlighted spot to record that build." : "";
+}
+function line(svg, a, b, color, w) {
+  const l = svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: color, "stroke-width": w, "stroke-linecap": "round" });
+  svg.append(l); return l;
+}
+function clickPlace(place) {
+  const same = (o) => (place.node !== undefined && o.node === place.node) || (place.edge && o.edge && o.edge.join() === place.edge.join()) || (place.tile && o.tile && o.tile.join() === place.tile.join());
+  const matches = S.options.filter(same);
+  if (matches.length === 1) choose(matches[0]);
+  else if (matches.length > 1) { $("filter").value = ""; renderOptions(matches); }
+}
+
+// ----- Board editor
+
+function startEditing() {
+  editing = {
+    tiles: S.board.tiles.map((t) => ({ ...t })),
+    ports: S.board.ports.map((p) => ({ ...p })),
+  };
+  pick = null; render();
+}
+function renderEditor() {
+  const box = $("options"); box.replaceChildren();
+  $("recordTitle").textContent = "Enter the board";
+  box.append(el("p", { class: "hint" }, "Click a tile to set its resource and number; click a port to cycle its type. Then press Use this board."));
+  if (pick) {
+    const res = el("select", {}, el("option", { value: "" }, "desert"), ...RES.map((r) => el("option", { value: r }, r)));
+    res.value = pick.resource || "";
+    const num = el("select", {}, el("option", { value: "" }, "-"), ...[2, 3, 4, 5, 6, 8, 9, 10, 11, 12].map((n) => el("option", { value: n }, n)));
+    num.value = pick.number || "";
+    res.onchange = () => { pick.resource = res.value || null; if (!pick.resource) pick.number = null; drawBoard(); };
+    num.onchange = () => { pick.number = num.value ? Number(num.value) : null; drawBoard(); };
+    box.append(el("div", { class: "row" }, "Tile: ", res, num));
+  }
+  const use = el("button", { class: "primary" }, "Use this board");
+  use.onclick = async () => {
+    const board = {
+      tiles: editing.tiles.map((t) => ({ coord: t.coord, resource: t.resource ? ENGINE[t.resource] : null, number: t.resource ? t.number : null })),
+      ports: editing.ports.map((p) => ({ resource: p.resource ? ENGINE[p.resource] : null, nodes: p.nodes })),
+    };
+    const names = S.names, viewer = S.viewer;
+    editing = null; pick = null;
+    await run("/api/new", { viewer, names, board });
+    if (S && !S.table) startEditing();
+  };
+  const cancel = el("button", {}, "Keep the random board");
+  cancel.onclick = () => { editing = null; pick = null; render(); };
+  box.append(el("div", { class: "row" }, use, cancel));
+  $("outcome").replaceChildren(); $("tradeBox").replaceChildren();
+}
+
+// ----- Recording moves
+
+let pending = null;  // option awaiting an outcome
+function choose(o) {
+  if (o.needs) { pending = o; renderOutcome(); return; }
+  run("/api/act", { key: o.key });
+}
+function renderOutcome() {
+  const box = $("outcome"); box.replaceChildren();
+  if (!pending) return;
+  const send = (outcome) => { const k = pending.key; pending = null; run("/api/act", { key: k, outcome }); };
+  if (pending.needs === "dice") {
+    box.append(el("div", {}, "Dice total:"));
+    const row = el("div", { class: "row" });
+    for (let n = 2; n <= 12; n++) row.append(el("button", { onclick: () => send(n) }, String(n)));
+    box.append(row);
+  } else if (pending.needs === "dev_card") {
+    box.append(el("div", {}, "Which card did you draw?"));
+    box.append(el("div", { class: "row" }, ...CARDS.map((c) => el("button", { onclick: () => send(c) }, c.replaceAll("_", " ").toLowerCase()))));
+  } else if (pending.needs === "stolen_resource") {
+    box.append(el("div", {}, "Which card was taken?"));
+    box.append(el("div", { class: "row" }, ...RES.map((r) => el("button", { onclick: () => send(ENGINE[r]) }, r))));
+  }
+  box.append(el("div", { class: "row" }, el("button", { onclick: () => { pending = null; renderOutcome(); } }, "Cancel")));
+}
+function renderOptions(list) {
+  const box = $("options"); box.replaceChildren();
+  const q = $("filter").value.trim().toLowerCase();
+  const shown = (list || S.options).filter((o) => !q || o.text.toLowerCase().includes(q));
+  const best = S.advice && S.advice.key;
+  for (const o of shown.slice(0, 60)) box.append(el("button", { class: "opt" + (o.key === best ? " best" : ""), onclick: () => choose(o) }, o.text));
+  if (shown.length > 60) box.append(el("p", { class: "hint" }, `${shown.length - 60} more: type to filter, or click the board.`));
+}
+function renderTrade() {
+  const box = $("tradeBox"); box.replaceChildren();
+  const rolled = S.options && S.options.some((o) => o.kind === "END_TURN");  // trades come after the roll
+  if (!S.table || S.over || S.prompt !== "PLAY_TURN" || S.deciding !== S.turn_seat || S.initial || !rolled) return;
+  const vec = () => RES.map((r) => el("input", { type: "number", min: 0, max: 9, value: 0, style: "width:44px", title: r }));
+  const give = vec(), get = vec();
+  const partner = el("select", {}, ...S.players.filter((p) => p.seat !== S.turn_seat).map((p) => el("option", { value: p.seat }, p.name)));
+  const go = el("button", {}, "Record trade");
+  go.onclick = () => run("/api/trade", { partner: Number(partner.value), give: give.map((i) => Number(i.value)), receive: get.map((i) => Number(i.value)) });
+  box.append(el("details", {}, el("summary", {}, `${S.names[S.turn_seat]} traded with another player`),
+    el("div", { class: "hint" }, RES.join(" / ")),
+    el("div", { class: "row" }, "Gave: ", ...give), el("div", { class: "row" }, "Got: ", ...get),
+    el("div", { class: "row" }, "With: ", partner, go)));
+}
+
+// ----- Advice
+
+async function advise() {
+  $("adviseNote").textContent = "Searching...";
+  await run("/api/advise", {});
+  $("adviseNote").textContent = "";
+}
+function renderAdvice() {
+  const box = $("advice"); box.replaceChildren();
+  const mine = S.table && !S.over && S.deciding === S.viewer;
+  $("adviseBtn").disabled = !mine;
+  if (!S.advice) { box.append(mine ? "Your decision. Ask Robber for a suggestion." : `Waiting for ${S.table ? S.names[S.deciding] : "a table"}.`); return; }
+  const a = S.advice;
+  box.append(el("div", { class: "advice-main" }, a.text));
+  box.append(el("div", { class: "hint" }, a.searched
+    ? `Searched in ${a.seconds.toFixed(1)} s: each option was played out in imagined games; "Win %" is how often you won them.`
+    : "A clear choice: Robber's instinct is confident, so it did not search."));
+  const t = el("table");
+  t.append(el("tr", {}, el("th", {}, "Option"), el("th", {}, "Instinct"), el("th", {}, "Win %")));
+  for (const c of a.candidates) {
+    const bar = el("div", { class: "bar" }, el("span", { style: `width:${(100 * c.prior).toFixed(0)}%` }));
+    const row = el("tr", {}, el("td", {}, el("button", { class: "opt" + (c.key === a.key ? " best" : ""), onclick: () => { const o = S.options.find((x) => x.key === c.key); if (o) choose(o); } }, c.text)),
+      el("td", {}, `${(100 * c.prior).toFixed(0)}%`, bar), el("td", {}, c.value == null ? "-" : `${(100 * c.value).toFixed(0)}%`));
+    t.append(row);
+  }
+  box.append(t);
+}
+
+// ----- Everything else
+
+function render() {
+  if (!S || !S.table) { $("status").textContent = "No table yet: press New table."; drawBoard(); return; }
+  const who = S.names[S.deciding];
+  $("status").textContent = S.over ? `Game over${S.winner !== null ? `: ${S.names[S.winner]} won` : ""}` : `Turn ${S.turn + 1} · ${who} to ${S.prompt.replaceAll("_", " ").toLowerCase()}${S.deciding === S.viewer && who !== "You" ? " (you)" : ""}`;
+  drawBoard();
+  if (editing) { renderEditor(); return; }
+  $("recordTitle").textContent = S.deciding === S.viewer ? "Your move: record what you did" : `Record what ${who} did`;
+  renderOutcome(); renderOptions(); renderTrade(); renderAdvice();
+  const pt = $("players"); pt.replaceChildren(el("tr", {}, ...["Player", "VP", "Cards", "Dev", "Knights", "Road"].map((h) => el("th", {}, h))));
+  for (const p of S.players) pt.append(el("tr", {}, el("td", {}, el("span", { class: "chip", style: `background:${SEAT[p.seat]}` }), p.name + (p.seat === S.viewer && p.name !== "You" ? " (you)" : "")),
+    el("td", {}, String(p.points)), el("td", {}, String(p.cards)), el("td", {}, String(p.dev_cards)),
+    el("td", {}, p.knights + (p.has_largest_army ? " ★" : "")), el("td", {}, p.longest_road + (p.has_longest_road ? " ★" : ""))));
+  const hand = Object.entries(S.hand).filter(([, n]) => n).map(([r, n]) => `${n} ${r}`).join(", ") || "no cards";
+  const devs = Object.entries(S.dev_hand).map(([c, n]) => `${n} ${c}`).join(", ");
+  $("hand").textContent = `Your hand: ${hand}${devs ? ` · development cards: ${devs}` : ""}`;
+  $("bank").textContent = `Bank: ${Object.entries(S.bank).map(([r, n]) => `${r} ${n}`).join(", ")} · ${S.dev_deck} development cards left`;
+  if (S.trade) $("bank").textContent += ` · ${S.trade}`;
+  const log = $("log"); log.replaceChildren(...S.log.slice().reverse().map((l) => el("div", {}, l)));
+}
+
+$("filter").oninput = () => S && S.table && !editing && renderOptions();
+$("adviseBtn").onclick = advise;
+$("undo").onclick = () => run("/api/undo", {});
+$("newBtn").onclick = () => {
+  const rows = $("nameRows"); rows.replaceChildren();
+  for (let i = 0; i < 4; i++) rows.append(el("div", { class: "row" }, `Player ${i + 1}: `, el("input", { id: `name${i}`, value: S && S.names ? S.names[i] : "" })));
+  $("newDialog").showModal();
+};
+$("newForm").onsubmit = async (e) => {
+  if (e.submitter && e.submitter.value !== "ok") return;
+  const viewer = Number($("viewer").value);
+  const names = [0, 1, 2, 3].map((i) => $(`name${i}`).value.trim());
+  if (!names[viewer]) names[viewer] = "You";
+  await run("/api/new", { viewer, names });
+  if ($("editBoard").checked && S && S.table) startEditing();
+};
+api("/api/state").then((s) => { S = s; render(); }).catch((e) => { $("error").textContent = e.message; });
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Robber Advisor</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #f4f1ea; color: #23201b; font: 14px/1.4 system-ui, sans-serif; }
+  iframe { border: 0; width: 100%; height: 100%; display: none; }
+  #offline { padding: 16px; display: none; }
+  code { background: #e9e3d6; padding: 2px 5px; border-radius: 4px; }
+  button { font: inherit; padding: 5px 10px; border-radius: 7px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<iframe id="advisor" title="Robber advisor"></iframe>
+<div id="offline">
+  <h3>The advisor is not running</h3>
+  <p>Start it in the Robber folder:</p>
+  <p><code>uv run python -m catan_ai.cli.advisor</code></p>
+  <button id="retry">Try again</button>
+</div>
+<script src="panel.js"></script>
+</body>
+</html>

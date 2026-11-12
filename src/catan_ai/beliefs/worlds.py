@@ -40,6 +40,7 @@ from catan_ai.engine import SEAT_COLORS, ActionKind, CanonicalAction, EngineAdap
 from catan_ai.engine.actions import RESOURCES
 from catan_ai.observations import DEV_CARDS, PlayerObservation
 from catan_ai.observations.events import PLAY_KINDS, EventType, VisibleEvent
+from catan_ai.observations.firewall import BoardView
 
 DEFAULT_WORLDS: Final = 8
 MAX_ASSIGNMENTS: Final = 200
@@ -51,12 +52,17 @@ class Contradiction(Exception):
 
 def board_map(observation: PlayerObservation) -> CatanMap:
     """The engine map of the observed board."""
+    return engine_map(observation.board)
+
+
+def engine_map(board: BoardView) -> CatanMap:
+    """The engine map of a public board: tiles, numbers and ports."""
     template = CatanMap.from_template(BASE_MAP_TEMPLATE, rng=random.Random(0))
     tiles = dict(template.tiles)
-    land = {tuple(c): (resource, number) for c, resource, number in observation.board.tiles}
+    land = {tuple(c): (resource, number) for c, resource, number in board.tiles}
     # Observed ports are grouped by resource (the four 3:1 ports share one entry);
     # match each template port by a land node it serves.
-    port_of = {node: resource for resource, nodes in observation.board.ports for node in nodes}
+    port_of = {node: resource for resource, nodes in board.ports for node in nodes}
     for coord, tile in tiles.items():
         if isinstance(tile, LandTile):
             tile.resource, tile.number = land[tuple(coord)]
@@ -67,8 +73,13 @@ def board_map(observation: PlayerObservation) -> CatanMap:
 
 
 def new_world(observation: PlayerObservation, seed: int) -> EngineAdapter:
+    return new_game_on(observation.board, seed)
+
+
+def new_game_on(board: BoardView, seed: int) -> EngineAdapter:
+    """A fresh game, before the first placement, on a given board."""
     players = [SimplePlayer(color) for color in SEAT_COLORS]
-    game = Game(players, seed=seed, catan_map=board_map(observation))
+    game = Game(players, seed=seed, catan_map=engine_map(board))
     state = game.state
     state.players = players
     state.colors = tuple(player.color for player in players)

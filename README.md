@@ -43,12 +43,34 @@ uv run python -m catan_ai.cli.evaluate --workers 11         # ladder evaluation 
 
 Any arena lineup can seat `model:champions/imitation-v1.pt` or `heuristic`.
 
+## Advisor
+
+A local page that follows a real game from your seat and suggests moves with search Robber
+(8 imagined games x 16 turns over `champions/robber-expert-1b.pt`, about 3 s per searched
+decision).
+
+```powershell
+uv run python -m catan_ai.cli.advisor        # then open http://127.0.0.1:8765
+```
+
+Press **New table**, enter the players in turn order and your seat, then enter the real board
+(click a tile to set its resource and number, click a port to change its type). Record every
+move as it happens: click the board, or pick from the list. Dice totals, your own development
+card draws and steals you took part in are asked for; everything else hidden stays hidden.
+When it is your decision, press **Ask Robber**. The table is saved to `runs/advisor/table.json`
+after every move and resumed on restart (`--fresh` starts over).
+
+`extension/` holds a Chrome side panel that shows the same page next to any tab (see its
+README). It reads no web pages. Reading a live colonist.io game is not implemented: colonist.io's
+terms forbid access to its internal APIs or data without written authorization.
+
 ## Layout
 
 | Path | Contents |
 |---|---|
 | `src/catan_ai/` | Project package |
 | `tests/` | Test suite |
+| `extension/` | Chrome side panel for the advisor |
 | `vendor/catanatron/` | Catanatron engine: our fork with rule fixes, pinned as a git submodule (GPL-3.0-or-later; see ADR-005) |
 | `champions/` | Promoted model checkpoints (small, committed) |
 | `configs/` | Ladder, imitation and evaluation configs |
