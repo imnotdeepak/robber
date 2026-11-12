@@ -3,10 +3,13 @@
 Shows the local advisor page (`python -m catan_ai.cli.advisor`) in Chrome's side panel, so it
 sits next to whatever tab you have open.
 
-The extension reads no web pages. It has no content scripts, and its only host permission is
-the advisor on `http://127.0.0.1:8765`. Moves are entered by hand in the panel. Reading a live
-game from a site (for example colonist.io) is deliberately not implemented: colonist.io's
-terms forbid accessing its internal APIs or data structures without written authorization.
+On colonist.io pages it copies the game messages your browser sends and receives (decoded
+from MessagePack) and passes them only to the advisor on `http://127.0.0.1:8765`, which saves
+them to `runs/advisor/captures/<date>.jsonl`. This is done with colonist.io's written
+permission (2026-11-12) to read the state of the user's own games and to train Robber on them.
+It never sends anything to colonist.io and never changes a message. If the advisor is not
+running, nothing is kept. Captures contain other players' usernames and chat: they stay on
+this computer (`runs/` is not committed).
 
 ## Install (developer mode)
 

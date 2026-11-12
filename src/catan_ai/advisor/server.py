@@ -2,7 +2,8 @@
 
 Binds to 127.0.0.1 only. One table at a time, saved after every change so a
 restart can resume it. The page (`web/index.html`) records what happens at the
-table and asks for advice; nothing here contacts any game site.
+table and asks for advice. Nothing here contacts any game site: game messages
+only arrive from the browser extension.
 
 API (JSON in and out):
 - GET  /api/state                  the table as the user sees it
@@ -11,6 +12,9 @@ API (JSON in and out):
 - POST /api/trade  {partner, give, receive}  a completed trade by the seat on turn
 - POST /api/undo
 - POST /api/advise                 search Robber's suggestion for the user
+- POST /api/capture  {tab, page, frames}  colonist.io game messages from the extension,
+  appended to runs/advisor/captures/<date>.jsonl (the user's own games, read with
+  colonist.io's written permission)
 """
 
 import json
@@ -111,6 +115,9 @@ class Session:
 
     def __init__(self, save: Path, advisor: Advisor) -> None:
         self.save = save
+        self.captures = save.parent / "captures"
+        self.captured = 0
+        self.last_capture: str | None = None
         self.advisor = advisor
         self.lock = threading.Lock()
         self.table: Table | None = None
@@ -177,11 +184,24 @@ class Session:
         }
         return self.last_advice
 
+    def capture(self, body: dict[str, Any]) -> dict[str, Any]:
+        frames = body.get("frames") or []
+        self.captures.mkdir(parents=True, exist_ok=True)
+        path = self.captures / f"{time.strftime('%Y-%m-%d')}.jsonl"
+        with path.open("a", encoding="utf-8") as out:
+            for frame in frames:
+                record = {"tab": body.get("tab"), "page": body.get("page"), **frame}
+                out.write(json.dumps(record, separators=(",", ":")) + "\n")
+        self.captured += len(frames)
+        self.last_capture = time.strftime("%H:%M:%S")
+        return {"captured": self.captured, "file": str(path)}
+
     # ----- State
 
     def state(self) -> dict[str, Any]:
+        capture = {"frames": self.captured, "last": self.last_capture}
         if self.table is None:
-            return {"table": None}
+            return {"table": None, "capture": capture}
         table = self.table
         observation = table.observation()
         describe = self._describer()
@@ -242,6 +262,7 @@ class Session:
             "log": [self._log_line(step, describe) for step in table.steps[-40:]],
             "advice": self.last_advice,
             "advisor": {"checkpoint": self.advisor.checkpoint, "budget": self.advisor.budget},
+            "capture": capture,
         }
 
     def _trade_text(self, trade: Any) -> str | None:
@@ -393,6 +414,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         length = int(self.headers.get("Content-Length") or 0)
+        if self.path == "/api/capture":  # no table lock: game messages must never wait
+            try:
+                self._send_json(self.session.capture(json.loads(self.rfile.read(length))))
+            except (ValueError, OSError) as error:
+                self._send_json({"error": str(error)}, HTTPStatus.BAD_REQUEST)
+            return
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
             with self.session.lock:

@@ -53,6 +53,7 @@
   <h1>Robber Advisor</h1>
   <span class="status" id="status">No table yet</span>
   <span class="spacer"></span>
+  <span class="status" id="capture"></span>
   <button id="undo">Undo</button>
   <button id="newBtn">New table</button>
 </header>
@@ -313,7 +314,12 @@ function renderAdvice() {
 
 // ----- Everything else
 
+function captureNote() {
+  const c = S && S.capture;
+  $("capture").textContent = c && c.frames ? `colonist.io capture: ${c.frames} messages (last ${c.last})` : "";
+}
 function render() {
+  captureNote();
   if (!S || !S.table) { $("status").textContent = "No table yet: press New table."; drawBoard(); return; }
   const who = S.names[S.deciding];
   $("status").textContent = S.over ? `Game over${S.winner !== null ? `: ${S.names[S.winner]} won` : ""}` : `Turn ${S.turn + 1} · ${who} to ${S.prompt.replaceAll("_", " ").toLowerCase()}${S.deciding === S.viewer && who !== "You" ? " (you)" : ""}`;
@@ -350,6 +356,10 @@ $("newForm").onsubmit = async (e) => {
   if ($("editBoard").checked && S && S.table) startEditing();
 };
 api("/api/state").then((s) => { S = s; render(); }).catch((e) => { $("error").textContent = e.message; });
+setInterval(async () => {  // keep the capture count fresh
+  if (busy) return;
+  try { const s = await api("/api/state"); if (S && s.capture) { S.capture = s.capture; captureNote(); } } catch {}
+}, 3000);
 </script>
 </body>
 </html>

@@ -36,7 +36,7 @@ def test_a_table_can_be_entered_played_advised_undone_and_resumed(
     port = server.server_address[1]
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
-        assert call(port, "/api/state") == {"table": None}
+        assert call(port, "/api/state")["table"] is None
         state = call(port, "/api/new", {"viewer": 1, "names": ["Ann", "", "Bo", "Cy"], "seed": 4})
         # Re-enter the same board as the page's editor would send it.
         board = {
@@ -88,3 +88,24 @@ def test_the_editor_rejects_a_board_that_is_not_standard(tmp_path: Path, advisor
     ]
     with pytest.raises(ValueError):
         session.new(0, ["", "", "", ""], 1, {"tiles": tiles, "ports": []})
+
+
+def test_captured_game_messages_are_appended_to_a_local_file(
+    tmp_path: Path, advisor: Advisor
+) -> None:
+    server = serve(Session(tmp_path / "table.json", advisor), 0)
+    port = server.server_address[1]
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        frames = [{"direction": "in", "time": 1, "messages": [{"data": {"type": 4}}]}] * 3
+        reply = call(
+            port, "/api/capture", {"tab": 7, "page": "https://colonist.io/#x", "frames": frames}
+        )
+        assert reply["captured"] == 3
+        assert call(port, "/api/state")["capture"]["frames"] == 3
+    finally:
+        server.shutdown()
+        server.server_close()
+    (path,) = (tmp_path / "captures").glob("*.jsonl")
+    lines = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    assert len(lines) == 3 and lines[0]["tab"] == 7 and lines[0]["messages"][0]["data"]["type"] == 4

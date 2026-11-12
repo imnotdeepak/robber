@@ -1,11 +1,26 @@
 {
   "manifest_version": 3,
   "name": "Robber Advisor",
-  "version": "0.1.0",
-  "description": "Shows the Robber advisor (running on this computer) in the side panel.",
+  "version": "0.2.0",
+  "description": "Robber move advice in the side panel; reads your own colonist.io games (with colonist.io's written permission) and sends them only to the advisor on this computer.",
   "permissions": ["sidePanel"],
   "host_permissions": ["http://127.0.0.1:8765/*"],
   "background": { "service_worker": "background.js" },
   "side_panel": { "default_path": "panel.html" },
-  "action": { "default_title": "Open the Robber advisor" }
+  "action": { "default_title": "Open the Robber advisor" },
+  "content_scripts": [
+    {
+      "matches": ["https://colonist.io/*"],
+      "js": ["msgpack.js", "colonist_hook.js"],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://colonist.io/*"],
+      "js": ["colonist_relay.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
 }
